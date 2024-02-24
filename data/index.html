@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>LED Timed LED Lighting Control</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="jquery-3.7.1.min.js"></script>
+    <script type="text/JavaScript" src="java.js" > </script>  
+  </head>
+
+<body>
+    <br/>
+    <div id="body-header">
+        <table>
+        <tr>
+            <td><img src="WhiteOnBlak_logo.png" width="150"/></td>
+            <td><h1>TL<sup>2</sup>C Stairwell Lighting</h1></td>
+        </tr>
+        </table>
+    </div>
+    <div id="body-detail">
+        <form id="lighting-data-form">
+            <br/>
+            <br/>
+            <table id="zone-table">
+                <tr>
+                    <td id="enable-header"><h2>Zone</h2></td>
+                    <td id="delay-header"><h2>On Delay</h2></td>
+                </tr>
+                <tr id="zone-3" class="zone-property">
+                    <td id="zone3-enable"><button id="zone3-button" class="button %ZONE3-COLOUR%">3</button></td>
+                    <td id="zone3-delay"><input name="zone3-delay" type="number" value="%ZONE3-DELAY%" /></td>
+                </tr>
+                <tr id="zone-2" class="zone-property">
+                    <td id="zone2-enable"><button id="zone2-button" class="button %ZONE2-COLOUR%">2</button></td>
+                    <td id="zone2-delay"><input name="zone2-delay" type="number" value="%ZONE2-DELAY%" /></td>
+                </tr>
+                <tr id="zone-1" class="zone-property">
+                    <td id="zone1-enable"><button id="zone1-button" class="button %ZONE1-COLOUR%">1</button></td>
+                    <td id="zone1-delay"><input name="zone1-delay" type="number" value="%ZONE1-DELAY%" /></td>
+                </tr>
+            </table>
+            <br/>
+            <br/>
+            <div>
+                <button id="zone-test-button" class="button greyButton">Test Mode</button>
+            </div>
+            <br/>
+            <br/>
+        </form>
+    </div>
+</body>
+
+</html>
