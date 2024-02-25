@@ -47,6 +47,7 @@ typedef struct
 {
   bool enabled[3];
   bool active[3];
+  bool relay_int;
   int delay[3];
 } TL2C_State_type;
 
@@ -107,9 +108,13 @@ String processor(const String &var)
 {
   if (var == "ZONE3-COLOUR")
   {
-    if (tl2c_state.active[ZONE3])
+    if (tl2c_state.enabled[ZONE3])
     {
-      return F("greenButton");
+      if(tl2c_state.active[ZONE3]){
+        return F("redButton");
+      } else {
+        return F("greenButton");
+      }
     }
     else
     {
@@ -119,9 +124,13 @@ String processor(const String &var)
 
   if (var == "ZONE2-COLOUR")
   {
-    if (tl2c_state.active[ZONE2])
+    if (tl2c_state.enabled[ZONE2])
     {
-      return F("greenButton");
+      if(tl2c_state.active[ZONE2]){
+        return F("redButton");
+      } else {
+        return F("greenButton");
+      }
     }
     else
     {
@@ -131,9 +140,13 @@ String processor(const String &var)
 
   if (var == "ZONE1-COLOUR")
   {
-    if (tl2c_state.active[ZONE1])
+    if (tl2c_state.enabled[ZONE1])
     {
-      return F("greenButton");
+      if(tl2c_state.active[ZONE1]){
+        return F("redButton");
+      } else {
+        return F("greenButton");
+      }
     }
     else
     {
@@ -261,6 +274,74 @@ int read_tl2c_zone_delay(int zone)
   return result;
 }
 
+void read_tl2c()
+{
+    tl2c_state_change = false;
+    // Get the state of the TL2C
+    Serial.println("State change detected");
+    tl2c_registers.state = read_tl2c_state();
+    if (tl2c_registers.state > 0)
+    {
+      Serial.printf("The state was read OK: 0b");
+      print_binary(tl2c_registers.state, 8);
+      Serial.println();
+      int v = tl2c_registers.state;
+      for( int bit = 0; bit < 3; bit++){
+        if( v & (1 << bit) ) {
+          Serial.printf("Setting bit %d \n", bit);
+          tl2c_state.active[bit] = true;
+        } else
+          tl2c_state.active[bit] = false;
+      }
+      if ( v & (1 << 3)) {
+        Serial.println("The relay bit is set");
+        tl2c_state.relay_int = true;
+      } else {
+        tl2c_state.relay_int = false;
+      }
+    }
+    else
+    {
+      Serial.println("Reading the state failed");
+    }
+
+    tl2c_registers.config = read_tl2c_config();
+    if(tl2c_registers.config > 0 )
+    {
+      Serial.printf("The config was read OK: 0b");
+      print_binary(tl2c_registers.config, 8);
+      Serial.println();
+      int v = tl2c_registers.config;
+      for( int bit = 0; bit < 3; bit++){
+        if( v & (1 << bit) ) {
+          Serial.printf("Setting bit %d \n", bit);
+          tl2c_state.enabled[bit] = true;
+        } else
+          tl2c_state.enabled[bit] = false;
+      }
+    }
+    else
+    {
+      Serial.println("Reading the config failed");
+    }
+    for (int z = 0; z < 3; z++){
+      tl2c_registers.zone_delay[z] = read_tl2c_zone_delay( z );
+      if(tl2c_registers.zone_delay[z] > 0 )
+      {
+        Serial.printf("The zone %d delay was read OK: %d \n", z, tl2c_registers.zone_delay[z]);
+        Serial.println();
+        tl2c_state.delay[z] = tl2c_registers.zone_delay[z];
+      }
+      else
+      {
+        Serial.printf("Reading the zone %d delay failed \n", z);
+      }
+
+    }
+}
+
+
+
 void setup_gpio()
 {
   Serial.println("Starting GPIO setup");
@@ -360,73 +441,20 @@ void setup()
   tl2c_address = locate_tl2c();
   Serial.printf("TL2C Address: %02x \n", tl2c_address);
   Serial.println("Setup complete");
+
+  delay(200);
+
+  read_tl2c();
+
 }
 
 void loop()
 {
   if (tl2c_state_change)
   {
-    tl2c_state_change = false;
-    // Get the state of the TL2C
-    Serial.println("State change detected");
-    tl2c_registers.state = read_tl2c_state();
-    if (tl2c_registers.state > 0)
-    {
-      Serial.printf("The state was read OK: 0b");
-      print_binary(tl2c_registers.state, 8);
-      Serial.println();
-      int v = tl2c_registers.state;
-      for( int bit = 0; bit < 3; bit++){
-        if( v & (1 << bit) ) {
-          Serial.printf("Setting bit %d \n", bit);
-          tl2c_state.active[bit] = true;
-        } else
-          tl2c_state.active[bit] = false;
-      }
-    }
-    else
-    {
-      Serial.println("Reading the state failed");
-    }
-
-    tl2c_registers.config = read_tl2c_config();
-    if(tl2c_registers.config > 0 )
-    {
-      Serial.printf("The config was read OK: 0b");
-      print_binary(tl2c_registers.config, 8);
-      Serial.println();
-      int v = tl2c_registers.config;
-      for( int bit = 0; bit < 3; bit++){
-        if( v & (1 << bit) ) {
-          Serial.printf("Setting bit %d \n", bit);
-          tl2c_state.enabled[bit] = true;
-        } else
-          tl2c_state.enabled[bit] = false;
-      }
-    }
-    else
-    {
-      Serial.println("Reading the config failed");
-    }
-    for (int z = 0; z < 3; z++){
-      tl2c_registers.zone_delay[z] = read_tl2c_zone_delay( z );
-      if(tl2c_registers.zone_delay[z] > 0 )
-      {
-        Serial.printf("The zone %d delay was read OK: %d \n", z, tl2c_registers.zone_delay[z]);
-        Serial.println();
-        tl2c_state.delay[z] = tl2c_registers.zone_delay[z];
-      }
-      else
-      {
-        Serial.printf("Reading the zone %d delay failed \n", z);
-      }
-
-    }
-
-
-
-
-
+    // TODO - Get the state first and if there is a change in the 
+    // relay interrupt state then do the rest.
+    read_tl2c();
   }
   delay(1);
 }
