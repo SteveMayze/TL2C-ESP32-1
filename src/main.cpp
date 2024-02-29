@@ -52,13 +52,13 @@ typedef struct
 } TL2C_State_type;
 
 typedef struct {
-  int state;
-  int config;
-  int zone_delay[3];
+  uint8_t state;
+  uint8_t config;
+  uint8_t zone_delay[3];
 } TL2C_registers;
 
-TL2C_State_type tl2c_state;
-TL2C_registers tl2c_registers;
+volatile TL2C_State_type tl2c_state;
+volatile TL2C_registers tl2c_registers;
 
 
 
@@ -72,6 +72,7 @@ void notFound(AsyncWebServerRequest *request)
 {
   request->send(404, "text/plain", "Seite nicht gefunden");
 }
+
 
 void print_binary(int v, int num_places)
 {
@@ -154,6 +155,42 @@ String processor(const String &var)
     }
   }
 
+  if (var == "ZONE3-ENABLE")
+  {
+    if (tl2c_state.enabled[ZONE3])
+    {
+      return F("TRUE");
+    }
+    else
+    {
+      return F("FALSE");
+    }
+  }
+
+  if (var == "ZONE2-ENABLE")
+  {
+    if (tl2c_state.enabled[ZONE2])
+    {
+      return F("TRUE");
+    }
+    else
+    {
+      return F("FALSE");
+    }
+  }
+  if (var == "ZONE1-ENABLE")
+  {
+    if (tl2c_state.enabled[ZONE1])
+    {
+      return F("TRUE");
+    }
+    else
+    {
+      return F("FALSE");
+    }
+  }
+
+
   if (var == "ZONE3-DELAY")
   {
     return String(tl2c_state.delay[ZONE3]);
@@ -170,6 +207,13 @@ String processor(const String &var)
   }
   return String(); // Fehler => leerer String
 }
+
+
+
+void handle_config_rest_post(AsyncWebServerRequest *request) {
+
+}
+
 
 int locate_tl2c()
 {
@@ -340,6 +384,126 @@ void read_tl2c()
     }
 }
 
+void write_register(uint8_t reg, uint8_t value) {
+  Serial.printf("Writing to TL2C Reg: %d, value %d \n", reg, value);
+    Wire.beginTransmission(tl2c_address);  
+    Wire.write(reg);
+    Wire.write(value);
+    Wire.endTransmission();    
+  Serial.println("Writing end");
+}
+
+
+void write_config()
+{
+    write_register(TL2C_CONFIG_REG,  tl2c_registers.config<<4);
+}
+
+void write_zone_delay(int zone, uint8_t delay){
+  switch (zone)
+  {
+  case ZONE1:
+    write_register(TL2C_ZONE1_ON_DELAY, tl2c_registers.zone_delay[ZONE1]);
+    break;
+  case ZONE2:
+    write_register(TL2C_ZONE2_ON_DELAY, tl2c_registers.zone_delay[ZONE2]);
+    break;
+  case ZONE3:
+    write_register(TL2C_ZONE3_ON_DELAY, tl2c_registers.zone_delay[ZONE3]);
+    break;
+  default:
+    break;
+  }
+
+}
+
+
+
+void write_tl2c() {
+  // tl2c_state -> tl2c_registers
+  // Then use Wire to write to tl2c_address
+  Serial.println("write_tl2c begin");
+  uint8_t config = 0;
+  for (int zone = 0; zone < 3; zone++){ 
+    if( tl2c_state.enabled[zone] ){
+      config = config | (1<<zone);
+    }
+    tl2c_registers.zone_delay[zone] = tl2c_state.delay[zone];
+    write_zone_delay(zone, tl2c_state.delay[zone]);
+  }
+  tl2c_registers.config = config;
+  write_config();
+  Serial.println("write_tl2c end");
+}
+
+String asString(bool enabled, bool active) {
+  String result = "OFF"; //Grey
+  if ( enabled ){
+    if( active )
+      result = "ACTIVE"; // Red
+    else
+      result = "ENABLED"; // Green
+  }
+  return result;
+}
+
+void handle_get_zone_state(AsyncWebServerRequest *request){
+  String json = "[";
+  json += "{\"zone\": {\"id\": \"1\", \"state\": \""+asString(tl2c_state.enabled[0], tl2c_state.active[0])+"\"}},";
+  json += "{\"zone\": {\"id\": \"2\", \"state\": \""+asString(tl2c_state.enabled[1], tl2c_state.active[1])+"\"}},";
+  json += "{\"zone\": {\"id\": \"3\", \"state\": \""+asString(tl2c_state.enabled[2], tl2c_state.active[2])+"\"}}";
+  json += "]";
+
+  request->send(200, "application/json", json);
+}
+
+
+void handle_zone_form_post(AsyncWebServerRequest *request){
+  Serial.println("handle_zone_form_post: Begin");
+
+  int params = request->params();
+  int zoneId = -1;
+  bool enabled = false;
+  bool updateEnable = false;
+  int zoneDelay = 0;
+  for(int i=0; i<params; i++){
+      AsyncWebParameter* p = request->getParam(i);
+      Serial.printf("name: %s, value: %s \n", p->name(), p->value());
+      if (  p->name() == "zone-id" ){
+        zoneId = p->value().toInt();
+        zoneId--;
+        Serial.printf("Setting the zoneID: %s to: %d, ", p->name(), zoneId);
+      }
+      if ( p->name() == "zone-enable" ){
+        enabled = !(p->value().equals("TRUE"));
+        if( enabled )
+          Serial.printf("setting the enable flag %s to: TRUE \n", p->name());
+        else
+          Serial.printf("setting the enable flag %s to: FALSE \n", p->name());
+      }
+      if( p->name() == "update-enable"){
+        Serial.printf("Setting the update-enable to %s \n", p->value());
+        updateEnable = p->value().equals("true");
+      }
+      if(p->name() == "zone-delay"){
+        Serial.printf("Setting the zone delay to %s \n", p->value());
+        zoneDelay = p->value().toInt();
+      }
+  }
+  Serial.printf("The zoneId: %d \n", zoneId);
+  if (zoneId > -1 && updateEnable ){
+    Serial.println("Updating the tl2c register for the zone enable");
+    tl2c_state.enabled[zoneId] = enabled;
+    // Write the config
+  }
+  if( zoneId > -1 && zoneDelay > 0 ){
+    Serial.println("Updating the tl2c register for the delay");
+    tl2c_state.delay[zoneId] = zoneDelay;
+  }
+  write_tl2c();
+  request->send(SPIFFS,  "/index.html", String(), false, processor);  
+  Serial.println("handle_zone_form_post: End");
+}
 
 
 void setup_gpio()
@@ -390,7 +554,9 @@ void setup_server()
 
   // Methode für root / web page
   serverWiFi.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-                { request->send(SPIFFS, "/index.html", String(), false, processor); });
+                { Serial.println("GET /");
+                  request->send(SPIFFS, "/index.html", String(), false, processor); 
+                  });
 
   // Methode für Laden der style.css-Datei
   serverWiFi.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -404,6 +570,12 @@ void setup_server()
   // Callback für Laden der java.js-Datei
   serverWiFi.on("/WhiteOnBlak_logo.png", HTTP_GET, [](AsyncWebServerRequest *request)
                 { request->send(SPIFFS, "/WhiteOnBlak_logo.png", "image/png"); });
+
+  // serverWiFi.on("/api/v1/config", HTTP_POST, handle_config_rest_post);
+
+  serverWiFi.on("/state", HTTP_GET, handle_get_zone_state);
+
+  serverWiFi.on("/", HTTP_POST, handle_zone_form_post);
 
   Serial.println("Server setup complete");
 }

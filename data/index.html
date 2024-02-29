@@ -23,7 +23,6 @@
         </table>
     </div>
     <div id="body-detail">
-        <form id="lighting-data-form">
             <br/>
             <br/>
             <table id="zone-table">
@@ -31,19 +30,39 @@
                     <td id="enable-header"><h2>Zone</h2></td>
                     <td id="delay-header"><h2>On Delay</h2></td>
                 </tr>
-                <tr id="zone-3" class="zone-property">
-                    <td id="zone3-enable"><button id="zone3-button" class="button %ZONE3-COLOUR%">3</button></td>
-                    <td id="zone3-delay"><input name="zone3-delay" type="number" value="%ZONE3-DELAY%" /></td>
-                </tr>
-                <tr id="zone-2" class="zone-property">
-                    <td id="zone2-enable"><button id="zone2-button" class="button %ZONE2-COLOUR%">2</button></td>
-                    <td id="zone2-delay"><input name="zone2-delay" type="number" value="%ZONE2-DELAY%" /></td>
-                </tr>
-                <tr id="zone-1" class="zone-property">
-                    <td id="zone1-enable"><button id="zone1-button" class="button %ZONE1-COLOUR%">1</button></td>
-                    <td id="zone1-delay"><input name="zone1-delay" type="number" value="%ZONE1-DELAY%" /></td>
-                </tr>
             </table>
+            <form id="zone3-form"  method="POST" action="/">
+                <table>
+                <tr id="zone-3" class="zone-property">
+                    <td id="z3-enable-btn"><button id="zone3-button" name="zone-enable-btn" class="button %ZONE3-COLOUR%">3</button></td>
+                    <td id="z3-delay"><input  id="zone3-delay-inp" name="zone-delay" type="number" value="%ZONE3-DELAY%" onBlur="submitForm(3, this)" /></td>
+                    <td id="z3-id"><input name="zone-id" type="hidden" value="3" /></td>
+                    <td id="z3-enable"><input name="zone-enable" type="hidden" value="%ZONE3-ENABLE%"/></td>
+                    <td id="z3-update-enable"><input id="zone3-update-enable" name="update-enable" type="hidden" value="true" /></td>
+                </tr>
+                </table>
+            </form>
+            <form id="zone2-form"  method="POST" action="/">
+                <table>
+                    <tr id="zone-2" class="zone-property">
+                        <td id="z2-enable-btn"><button id="zone2-button" name="zone-enable-btn" class="button %ZONE2-COLOUR%">2</button></td>
+                        <td id="z2-delay"><input id="zone2-delay-inp" name="zone-delay" type="number" value="%ZONE2-DELAY%" onBlur="submitForm(2, this)" /></td>
+                        <td id="z2-id"><input name="zone-id" type="hidden" value="2" /></td>
+                        <td id="z2-enable"><input name="zone-enable" type="hidden" value="%ZONE2-ENABLE%"/></td>
+                        <td id="z2-update-enable"><input id="zone2-update-enable" name="update-enable" type="hidden" value="true" /></td>
+                    </tr>
+                </table>
+            </form>
+            <form id="zone1-form"  method="POST" action="/">
+                <table>
+                        <td id="z1-enable-btn"><button id="zone1-button" name="zone-enable-btn" class="button %ZONE1-COLOUR%">1</button></td>
+                        <td id="z1-delay"><input id="zone1-delay-inp" name="zone-delay" type="number" value="%ZONE1-DELAY%"  onBlur="submitForm(1, this)" /></td>
+                        <td id="z1-id"><input name="zone-id" type="hidden" value="1" /></td>
+                        <td id="z1-enable"><input name="zone-enable" type="hidden" value="%ZONE1-ENABLE%"/></td>
+                        <td id="z1-update-enable"><input id="zone1-update-enable" name="update-enable" type="hidden" value="true" /></td>
+                    </tr>
+                </table>
+            </form>
             <br/>
             <br/>
             <div>
@@ -51,8 +70,7 @@
             </div>
             <br/>
             <br/>
-        </form>
-    </div>
+        </div>
 </body>
 
 </html>

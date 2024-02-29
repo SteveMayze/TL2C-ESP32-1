@@ -36,15 +36,53 @@ $( document ).ready(function() {
      $('#zone-test-button').addClass( 'opac10' ).removeClass( 'opac08' );	
   });
 
+ 
   setInterval(function ( ) {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
-      if (this.readyState == 4 && this.status == 200) {
-        $('#betriebsZeit').text( this.responseText );
+      if(this.readyState == 4 && this.status == 200){
+        console.log("onreadystatechange");
+        console.log(this.responseText);    
+        docj = JSON.parse(this.responseText);
+        for( jj in docj){
+          console.log(docj[jj].zone)
+          zone = docj[jj].zone.id
+          state = docj[jj].zone.state
+
+          // redButton
+          zz = "#zone"+zone+"-button"
+          zoneBtn = $(zz);
+          if ( state == "ENABLED" )
+            newClass = "greenButton";
+          else if (state == "ACTIVE")
+            newClass = "redButton"
+          else
+            newClass = "greyButton"
+
+          classes = zoneBtn.attr("class").split(/\s+/)
+          currClass = "greyButton"
+          for( cc in classes){
+            if (classes[cc].endsWith("Button")){
+              currClass = classes[cc];
+              break;
+            }
+            
+          }
+          if( newClass != currClass)
+            zoneBtn.addClass(newClass).removeClass(currClass)
+        }      
       }
     };
-    xhttp.open("GET", "/updat", true);
+    xhttp.open("GET", "/state", true);
     xhttp.send();
-  }, 1000 ) ;
+  }, 2000 ) ;
+
 
 });
+
+function submitForm(zone, field){
+  console.log("TL2C Submit Form");
+  console.log(" >>> zone"+zone+"-form, value: "+field.value);
+  this.document.getElementById( "zone"+zone+"-update-enable").setAttribute('value', 'false');
+  this.document.getElementById( "zone"+zone+"-form").submit();
+}
