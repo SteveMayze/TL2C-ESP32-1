@@ -533,8 +533,11 @@ void setup_server()
 
   Serial.print("Connecting ... ");
   Serial.println(TL2C_WLAN_SSID);
-  WiFi.mode(WIFI_STA);
-  WiFi.hostname(TL2C_WLAN_HOST);
+
+  WiFi.mode(WIFI_MODE_APSTA); // or any other mode
+  WiFi.setHostname(TL2C_WLAN_HOST);
+  WiFi.mode(WIFI_MODE_STA);
+
   WiFi.begin(TL2C_WLAN_SSID, TL2C_WLAN_PWD);
 
   while (WiFi.status() != WL_CONNECTED)
