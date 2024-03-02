@@ -33,10 +33,10 @@ $( document ).ready(function() {
   });
 
   $( "#zone-test-button" ).mouseover(function() {
-     $('#zone-test-button').addClass( 'opac10' ).removeClass( 'opac08' );	
-  });
+    $('#zone-test-button').addClass( 'opac10' ).removeClass( 'opac08' );	
+ });
 
- 
+
   setInterval(function ( ) {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -83,6 +83,7 @@ $( document ).ready(function() {
 function submitForm(zone, field){
   console.log("TL2C Submit Form");
   console.log(" >>> zone"+zone+"-form, value: "+field.value);
-  this.document.getElementById( "zone"+zone+"-update-enable").setAttribute('value', 'false');
+  this.document.getElementById( "zone"+zone+"-request-mode").setAttribute('value', 'delay');
   this.document.getElementById( "zone"+zone+"-form").submit();
 }
+

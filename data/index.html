@@ -38,7 +38,7 @@
                     <td id="z3-delay"><input  id="zone3-delay-inp" name="zone-delay" type="number" value="%ZONE3-DELAY%" onBlur="submitForm(3, this)" /></td>
                     <td id="z3-id"><input name="zone-id" type="hidden" value="3" /></td>
                     <td id="z3-enable"><input name="zone-enable" type="hidden" value="%ZONE3-ENABLE%"/></td>
-                    <td id="z3-update-enable"><input id="zone3-update-enable" name="update-enable" type="hidden" value="true" /></td>
+                    <td id="z3-request-mode"><input id="zone3-request-mode" name="request-mode" type="hidden" value="enable" /></td>
                 </tr>
                 </table>
             </form>
@@ -49,7 +49,7 @@
                         <td id="z2-delay"><input id="zone2-delay-inp" name="zone-delay" type="number" value="%ZONE2-DELAY%" onBlur="submitForm(2, this)" /></td>
                         <td id="z2-id"><input name="zone-id" type="hidden" value="2" /></td>
                         <td id="z2-enable"><input name="zone-enable" type="hidden" value="%ZONE2-ENABLE%"/></td>
-                        <td id="z2-update-enable"><input id="zone2-update-enable" name="update-enable" type="hidden" value="true" /></td>
+                        <td id="z2-request-mode"><input id="zone2-request-mode" name="request-mode" type="hidden" value="enable" /></td>
                     </tr>
                 </table>
             </form>
@@ -59,15 +59,18 @@
                         <td id="z1-delay"><input id="zone1-delay-inp" name="zone-delay" type="number" value="%ZONE1-DELAY%"  onBlur="submitForm(1, this)" /></td>
                         <td id="z1-id"><input name="zone-id" type="hidden" value="1" /></td>
                         <td id="z1-enable"><input name="zone-enable" type="hidden" value="%ZONE1-ENABLE%"/></td>
-                        <td id="z1-update-enable"><input id="zone1-update-enable" name="update-enable" type="hidden" value="true" /></td>
+                        <td id="z1-request-mode"><input id="zone1-request-mode" name="request-mode" type="hidden" value="enable" /></td>
                     </tr>
                 </table>
             </form>
             <br/>
             <br/>
-            <div>
-                <button id="zone-test-button" class="button greyButton">Test Mode</button>
-            </div>
+            <form  id="test-form" method="POST" action="/">
+                <div>
+                    <button id="zone-test-button" class="button blueButton" >Test Mode</button>
+                    <td id="test-request-mode"><input id="test-request-mode" name="request-mode" type="hidden" value="test" /></td>
+                </div>
+            </form>
             <br/>
             <br/>
         </div>

@@ -49,6 +49,7 @@ typedef struct
   bool active[3];
   bool relay_int;
   int delay[3];
+  bool testMode;
 } TL2C_State_type;
 
 typedef struct {
@@ -278,7 +279,8 @@ int read_tl2c_register(int reg)
       result = Wire.read();
     }
     Serial.print("Response: 0b");
-    Serial.println(result, BIN);
+    print_binary(result, 8);
+    Serial.println();
   }
   else
   {
@@ -322,9 +324,9 @@ void read_tl2c()
 {
     tl2c_state_change = false;
     // Get the state of the TL2C
-    Serial.println("State change detected");
+    Serial.println("read_tl2c read all registers");
     tl2c_registers.state = read_tl2c_state();
-    if (tl2c_registers.state > 0)
+    if (tl2c_registers.state > -1)
     {
       Serial.printf("The state was read OK: 0b");
       print_binary(tl2c_registers.state, 8);
@@ -396,7 +398,7 @@ void write_register(uint8_t reg, uint8_t value) {
 
 void write_config()
 {
-    write_register(TL2C_CONFIG_REG,  tl2c_registers.config<<4);
+    write_register(TL2C_CONFIG_REG,  tl2c_registers.config);
 }
 
 void write_zone_delay(int zone, uint8_t delay){
@@ -426,12 +428,24 @@ void write_tl2c() {
   uint8_t config = 0;
   for (int zone = 0; zone < 3; zone++){ 
     if( tl2c_state.enabled[zone] ){
-      config = config | (1<<zone);
+      config |= (1<<zone);
     }
     tl2c_registers.zone_delay[zone] = tl2c_state.delay[zone];
     write_zone_delay(zone, tl2c_state.delay[zone]);
   }
+
+  config = config<<4;
+  if ( tl2c_state.testMode ){
+    Serial.println("Setting test mode in the config");
+    config |= 0b0111;
+  }
+
+  Serial.print("Setting the configuration 0b");
+  print_binary(config, 8);
+  Serial.println();
+
   tl2c_registers.config = config;
+
   write_config();
   Serial.println("write_tl2c end");
 }
@@ -457,6 +471,12 @@ void handle_get_zone_state(AsyncWebServerRequest *request){
   request->send(200, "application/json", json);
 }
 
+typedef enum {
+  NONE,
+  ENABLE,
+  DELAY,
+  TEST
+} TL2C_RequestMode;
 
 void handle_zone_form_post(AsyncWebServerRequest *request){
   Serial.println("handle_zone_form_post: Begin");
@@ -464,8 +484,9 @@ void handle_zone_form_post(AsyncWebServerRequest *request){
   int params = request->params();
   int zoneId = -1;
   bool enabled = false;
-  bool updateEnable = false;
   int zoneDelay = 0;
+  TL2C_RequestMode requestMode = NONE;
+
   for(int i=0; i<params; i++){
       AsyncWebParameter* p = request->getParam(i);
       Serial.printf("name: %s, value: %s \n", p->name(), p->value());
@@ -481,9 +502,15 @@ void handle_zone_form_post(AsyncWebServerRequest *request){
         else
           Serial.printf("setting the enable flag %s to: FALSE \n", p->name());
       }
-      if( p->name() == "update-enable"){
-        Serial.printf("Setting the update-enable to %s \n", p->value());
-        updateEnable = p->value().equals("true");
+      if( p->name() == "request-mode"){
+        Serial.printf("Setting the request-mode to %s \n", p->value());
+        if (p->value().equals("enable")){
+          requestMode = ENABLE;
+        } else if (p->value().equals("delay")){
+          requestMode = DELAY;
+        } else if (p->value().equals("test")){
+          requestMode = TEST;
+        }
       }
       if(p->name() == "zone-delay"){
         Serial.printf("Setting the zone delay to %s \n", p->value());
@@ -491,17 +518,22 @@ void handle_zone_form_post(AsyncWebServerRequest *request){
       }
   }
   Serial.printf("The zoneId: %d \n", zoneId);
-  if (zoneId > -1 && updateEnable ){
+  if (zoneId > -1 && requestMode == ENABLE ){
     Serial.println("Updating the tl2c register for the zone enable");
     tl2c_state.enabled[zoneId] = enabled;
     // Write the config
   }
-  if( zoneId > -1 && zoneDelay > 0 ){
+  if( zoneId > -1 && requestMode == DELAY ){
     Serial.println("Updating the tl2c register for the delay");
     tl2c_state.delay[zoneId] = zoneDelay;
   }
+  if( requestMode == TEST ){
+    Serial.println("Updating the tl2c register for the test");
+    tl2c_state.testMode = !tl2c_state.testMode;
+  }
   write_tl2c();
   request->send(SPIFFS,  "/index.html", String(), false, processor);  
+  read_tl2c();
   Serial.println("handle_zone_form_post: End");
 }
 
@@ -601,6 +633,8 @@ void setup()
   tl2c_state.delay[ZONE2] = 15;
   tl2c_state.delay[ZONE1] = 20;
 
+  tl2c_state.testMode = false;
+
   Serial.begin(9600);
 
   setup_server();
@@ -619,6 +653,7 @@ void setup()
 
   delay(200);
 
+  read_tl2c();
   read_tl2c();
 
 }

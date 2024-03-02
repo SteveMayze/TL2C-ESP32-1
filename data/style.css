@@ -46,6 +46,13 @@ p{
   background-position: center;
   background-repeat: no-repeat;
 }
+
+.blueButton {
+  background-color: #5398FA;
+  background-size: 20px 40px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 .opac08 {
   opacity: 0.8;
 }
