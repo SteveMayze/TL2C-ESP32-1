@@ -50,6 +50,8 @@ typedef enum {
   TEST
 } TL2C_RequestMode;
 
+int led_pins[3] = {TL2C_ZONE1_ACTIVE, TL2C_ZONE2_ACTIVE, TL2C_ZONE3_ACTIVE};
+
 
 volatile int button_state;
 volatile int button_fired;
@@ -349,10 +351,15 @@ void read_tl2c()
       int v = tl2c_registers.state;
       for( int bit = 0; bit < 3; bit++){
         if( v & (1 << bit) ) {
-          Serial.printf("Setting bit %d \n", bit);
+          // Serial.printf("Setting bit %d \n", bit);
           tl2c_state.active[bit] = true;
-        } else
+          Serial.printf("Active: Setting bit: %d - HIGH \n", bit);
+          digitalWrite(led_pins[bit], HIGH);
+        } else {
           tl2c_state.active[bit] = false;
+          Serial.printf("Active: Setting bit: %d - LOW \n", bit);
+          digitalWrite(led_pins[bit], LOW);
+        }
       }
       if ( v & (1 << 3)) {
         Serial.println("The relay bit is set");
@@ -375,10 +382,14 @@ void read_tl2c()
       int v = tl2c_registers.config;
       for( int bit = 0; bit < 3; bit++){
         if( v & (1 << bit) ) {
-          Serial.printf("Setting bit %d \n", bit);
+          Serial.printf("Config: Setting bit %d HIGH \n", bit);
           tl2c_state.enabled[bit] = true;
-        } else
+          digitalWrite(led_pins[bit], HIGH);
+        } else {
+          Serial.printf("Config: Setting bit %d LOW \n", bit);
           tl2c_state.enabled[bit] = false;
+          digitalWrite(led_pins[bit], LOW);
+        }
       }
     }
     else
@@ -562,8 +573,8 @@ void setup_gpio()
 
   digitalWrite(TL2C_SLEEP, HIGH);
   digitalWrite(TL2C_ZONE1_ACTIVE, LOW);
-  digitalWrite(TL2C_ZONE1_ACTIVE, LOW);
-  digitalWrite(TL2C_ZONE1_ACTIVE, LOW);
+  digitalWrite(TL2C_ZONE2_ACTIVE, LOW);
+  digitalWrite(TL2C_ZONE3_ACTIVE, LOW);
   
   attachInterrupt(digitalPinToInterrupt(TL2C_RELAY_INT), tl2c_state_change_isr, RISING);
   attachInterrupt(digitalPinToInterrupt(TL2C_ZONE1_BUTTON), tl2c_zone_button_isr, RISING);
