@@ -12,7 +12,7 @@
 
 #define TL2C_SLEEP 35
 #define TL2C_RELAY_INT 32
-#define TL2C_ZONE1_BUTTON 32
+#define TL2C_ZONE1_BUTTON 33
 #define TL2C_ZONE2_BUTTON 25
 #define TL2C_ZONE3_BUTTON 26
 #define TL2C_ZONE1_ACTIVE 14
@@ -42,6 +42,17 @@ enum
   ZONE2,
   ZONE3,
 } Zone;
+
+typedef enum {
+  NONE,
+  ENABLE,
+  DELAY,
+  TEST
+} TL2C_RequestMode;
+
+
+volatile int button_state;
+volatile int button_fired;
 
 typedef struct
 {
@@ -263,6 +274,11 @@ void IRAM_ATTR tl2c_state_change_isr()
   tl2c_state_change = true;
 }
 
+void  tl2c_zone_button_isr()
+{
+  button_fired++;
+}
+
 int read_tl2c_register(int reg)
 {
   Serial.printf("Reading the %02x register \n", reg);
@@ -322,7 +338,6 @@ int read_tl2c_zone_delay(int zone)
 
 void read_tl2c()
 {
-    tl2c_state_change = false;
     // Get the state of the TL2C
     Serial.println("read_tl2c read all registers");
     tl2c_registers.state = read_tl2c_state();
@@ -471,12 +486,6 @@ void handle_get_zone_state(AsyncWebServerRequest *request){
   request->send(200, "application/json", json);
 }
 
-typedef enum {
-  NONE,
-  ENABLE,
-  DELAY,
-  TEST
-} TL2C_RequestMode;
 
 void handle_zone_form_post(AsyncWebServerRequest *request){
   Serial.println("handle_zone_form_post: Begin");
@@ -544,9 +553,9 @@ void setup_gpio()
 
   pinMode(TL2C_SLEEP, OUTPUT);
   pinMode(TL2C_RELAY_INT, INPUT_PULLUP);
-  pinMode(TL2C_ZONE1_BUTTON, INPUT_PULLUP);
-  pinMode(TL2C_ZONE2_BUTTON, INPUT_PULLUP);
-  pinMode(TL2C_ZONE3_BUTTON, INPUT_PULLUP);
+  pinMode(TL2C_ZONE1_BUTTON, INPUT);
+  pinMode(TL2C_ZONE2_BUTTON, INPUT);
+  pinMode(TL2C_ZONE3_BUTTON, INPUT);
   pinMode(TL2C_ZONE1_ACTIVE, OUTPUT);
   pinMode(TL2C_ZONE2_ACTIVE, OUTPUT);
   pinMode(TL2C_ZONE3_ACTIVE, OUTPUT);
@@ -555,8 +564,16 @@ void setup_gpio()
   digitalWrite(TL2C_ZONE1_ACTIVE, LOW);
   digitalWrite(TL2C_ZONE1_ACTIVE, LOW);
   digitalWrite(TL2C_ZONE1_ACTIVE, LOW);
+  
   attachInterrupt(digitalPinToInterrupt(TL2C_RELAY_INT), tl2c_state_change_isr, RISING);
+  attachInterrupt(digitalPinToInterrupt(TL2C_ZONE1_BUTTON), tl2c_zone_button_isr, RISING);
+  attachInterrupt(digitalPinToInterrupt(TL2C_ZONE2_BUTTON), tl2c_zone_button_isr, RISING);
+  attachInterrupt(digitalPinToInterrupt(TL2C_ZONE3_BUTTON), tl2c_zone_button_isr, RISING);
+
+  button_state = 0;
+
   Serial.println("Completed GPIO setup");
+
 }
 
 void setup_server()
@@ -577,6 +594,7 @@ void setup_server()
     delay(500);
     Serial.print(".");
   }
+
   Serial.println(""); // Verbindung aufgebaut
   Serial.println("WiFi connected.");
   Serial.println("IP address: ");
@@ -651,9 +669,6 @@ void setup()
   Serial.printf("TL2C Address: %02x \n", tl2c_address);
   Serial.println("Setup complete");
 
-  delay(200);
-
-  read_tl2c();
   read_tl2c();
 
 }
@@ -662,9 +677,58 @@ void loop()
 {
   if (tl2c_state_change)
   {
-    // TODO - Get the state first and if there is a change in the 
-    // relay interrupt state then do the rest.
+    tl2c_state_change = false;
     read_tl2c();
   }
-  delay(1);
+
+  if(button_fired > 0){
+    Serial.printf("Button fired: %d \n", button_fired);
+    button_fired--;
+
+    delay(50);
+
+
+    if( digitalRead(TL2C_ZONE1_BUTTON)){
+      button_state = button_state | 1<<ZONE1;
+    }
+    if( digitalRead(TL2C_ZONE2_BUTTON)){
+      button_state = button_state | 1<<ZONE2;
+    }
+    if( digitalRead(TL2C_ZONE3_BUTTON)){
+      button_state = button_state | 1<<ZONE3;
+    }
+
+    Serial.print("Button state: ");
+    print_binary(button_state, 4);
+    Serial.println();
+    switch (button_state)
+    {
+    case 0x01: // Zone 1
+      Serial.println("BTN 1");
+      tl2c_state.enabled[ZONE1] = !tl2c_state.enabled[ZONE1];
+      write_tl2c();
+      break;
+    case 0x02: // Zone 2
+      Serial.println("BTN 2");
+      tl2c_state.enabled[ZONE2] = !tl2c_state.enabled[ZONE2];
+      write_tl2c();
+      break;
+    case 0x04: // Zone 3
+      Serial.println("BTN 3");
+      tl2c_state.enabled[ZONE3] = !tl2c_state.enabled[ZONE3];
+      write_tl2c();
+      break;
+    case 0x03: // Zone 1 and 2
+      Serial.println("BTN 1 + 2");
+      break;
+    case 0x05: // Zone 1 and 3
+      Serial.println("BTN 1 + 3");
+      break;
+    default:
+      break;
+    }
+    button_state = 0;
+  }
+
+  // delay(1);
 }
