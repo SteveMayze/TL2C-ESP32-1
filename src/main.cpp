@@ -354,11 +354,9 @@ void read_tl2c()
           // Serial.printf("Setting bit %d \n", bit);
           tl2c_state.active[bit] = true;
           Serial.printf("Active: Setting bit: %d - HIGH \n", bit);
-          digitalWrite(led_pins[bit], HIGH);
         } else {
           tl2c_state.active[bit] = false;
           Serial.printf("Active: Setting bit: %d - LOW \n", bit);
-          digitalWrite(led_pins[bit], LOW);
         }
       }
       if ( v & (1 << 3)) {
@@ -739,6 +737,7 @@ void loop()
       break;
     }
     button_state = 0;
+    read_tl2c();
   }
 
   // delay(1);
