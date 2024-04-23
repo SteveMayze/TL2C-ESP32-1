@@ -8,6 +8,9 @@
 #include <Wire.h>
 #include <SPIFFS.h>
 
+#include "logger.h"
+
+
 #define LED_PIN 2
 
 #define TL2C_SLEEP 35
@@ -103,17 +106,17 @@ void print_binary(int v, int num_places)
 
     if (v & (0x0001 << num_places - 1))
     {
-      Serial.print("1");
+      LOG_DEBUG("1");
     }
     else
     {
-      Serial.print("0");
+      LOG_DEBUG("0");
     }
 
     --num_places;
     if (((num_places % 4) == 0) && (num_places != 0))
     {
-      Serial.print("_");
+      LOG_DEBUG("_");
     }
   }
 }
@@ -231,7 +234,7 @@ void handle_config_rest_post(AsyncWebServerRequest *request) {
 
 int locate_tl2c()
 {
-  Serial.println("Locate TL2C Begin \n");
+  LOG_DEBUG_LN("Locate TL2C Begin \n");
   int nDevices = 0;
   int tl2c_addr = 0;
   byte error;
@@ -242,7 +245,7 @@ int locate_tl2c()
     if (error == I2C_RESPONSE_SUCCESS)
     {
       tl2c_addr = i;
-      Serial.printf("TL2C found at Address %02x \n", i);
+      LOG_DEBUG_F("TL2C found at Address %02x \n", i);
       nDevices++;
       break;
     }
@@ -250,11 +253,11 @@ int locate_tl2c()
 
   if (nDevices == 0)
   {
-    Serial.println("No TL2C found on the I2C bus\n");
+    LOG_DEBUG_LN("No TL2C found on the I2C bus\n");
   }
   else
   {
-    Serial.println("Locate TL2C End \n");
+    LOG_DEBUG_LN("Locate TL2C End \n");
   }
   return tl2c_addr;
 }
@@ -283,7 +286,7 @@ void  tl2c_zone_button_isr()
 
 int read_tl2c_register(int reg)
 {
-  Serial.printf("Reading the %02x register \n", reg);
+  LOG_DEBUG_F("Reading the %02x register \n", reg);
 
   Wire.beginTransmission(tl2c_address);
   Wire.write(reg);
@@ -296,13 +299,13 @@ int read_tl2c_register(int reg)
     {
       result = Wire.read();
     }
-    Serial.print("Response: 0b");
+    LOG_DEBUG("Response: 0b");
     print_binary(result, 8);
-    Serial.println();
+    LOG_DEBUG_LN();
   }
   else
   {
-    Serial.printf("Failed to ready the I2C bus addr: %02x, response: %02x \n", tl2c_address, response);
+    LOG_DEBUG_F("Failed to ready the I2C bus addr: %02x, response: %02x \n", tl2c_address, response);
   }
   return result;
 }
@@ -341,25 +344,25 @@ int read_tl2c_zone_delay(int zone)
 void read_tl2c()
 {
     // Get the state of the TL2C
-    Serial.println("read_tl2c read all registers");
+    LOG_DEBUG_LN("read_tl2c read all registers");
     tl2c_registers.state = read_tl2c_state();
     if (tl2c_registers.state > -1)
     {
-      Serial.printf("The state was read OK: 0b");
+      LOG_DEBUG_F("The state was read OK: 0b");
       print_binary(tl2c_registers.state, 8);
-      Serial.println();
+      LOG_DEBUG_LN();
       int v = tl2c_registers.state;
       for( int bit = 0; bit < 3; bit++){
         if( v & (1 << bit) ) {
           tl2c_state.active[bit] = true;
-          Serial.printf("Active: Setting bit: %d - HIGH \n", bit);
+          LOG_DEBUG_F("Active: Setting bit: %d - HIGH \n", bit);
         } else {
           tl2c_state.active[bit] = tl2c_state.testMode? true : false;
-          Serial.printf("Active: Setting bit: %d - LOW \n", bit);
+          LOG_DEBUG_F("Active: Setting bit: %d - LOW \n", bit);
         }
       }
       if ( v & (1 << 3)) {
-        Serial.println("The relay bit is set");
+        LOG_DEBUG_LN("The relay bit is set");
         tl2c_state.relay_int = true;
       } else {
         tl2c_state.relay_int = false;
@@ -367,23 +370,23 @@ void read_tl2c()
     }
     else
     {
-      Serial.println("Reading the state failed");
+      LOG_DEBUG_LN("Reading the state failed");
     }
 
     tl2c_registers.config = read_tl2c_config();
     if(tl2c_registers.config > -1 )
     {
-      Serial.printf("The config was read OK: 0b");
+      LOG_DEBUG_F("The config was read OK: 0b");
       print_binary(tl2c_registers.config, 8);
-      Serial.println();
+      LOG_DEBUG_LN();
       int v = tl2c_registers.config;
       for( int bit = 0; bit < 3; bit++){
         if( v & (1 << bit) ) {
-          Serial.printf("Config: Setting bit %d HIGH \n", bit);
+          LOG_DEBUG_F("Config: Setting bit %d HIGH \n", bit);
           tl2c_state.enabled[bit] = true;
           digitalWrite(led_pins[bit], HIGH);
         } else {
-          Serial.printf("Config: Setting bit %d LOW \n", bit);
+          LOG_DEBUG_F("Config: Setting bit %d LOW \n", bit);
           tl2c_state.enabled[bit] = false;
           digitalWrite(led_pins[bit], LOW);
         }
@@ -391,32 +394,32 @@ void read_tl2c()
     }
     else
     {
-      Serial.println("Reading the config failed");
+      LOG_DEBUG_LN("Reading the config failed");
     }
 
     for (int z = 0; z < 3; z++){
       tl2c_registers.zone_delay[z] = read_tl2c_zone_delay( z );
       if(tl2c_registers.zone_delay[z] > 0 )
       {
-        Serial.printf("The zone %d delay was read OK: %d \n", z, tl2c_registers.zone_delay[z]);
-        Serial.println();
+        LOG_DEBUG_F("The zone %d delay was read OK: %d \n", z, tl2c_registers.zone_delay[z]);
+        LOG_DEBUG_LN();
         tl2c_state.delay[z] = tl2c_registers.zone_delay[z];
       }
       else
       {
-        Serial.printf("Reading the zone %d delay failed \n", z);
+        LOG_DEBUG_F("Reading the zone %d delay failed \n", z);
       }
 
     }
 }
 
 void write_register(uint8_t reg, uint8_t value) {
-  Serial.printf("Writing to TL2C Reg: %d, value %d \n", reg, value);
+  LOG_DEBUG_F("Writing to TL2C Reg: %d, value %d \n", reg, value);
     Wire.beginTransmission(tl2c_address);  
     Wire.write(reg);
     Wire.write(value);
     Wire.endTransmission();    
-  Serial.println("Writing end");
+  LOG_DEBUG_LN("Writing end");
 }
 
 
@@ -448,7 +451,7 @@ void write_zone_delay(int zone, uint8_t delay){
 void write_tl2c() {
   // tl2c_state -> tl2c_registers
   // Then use Wire to write to tl2c_address
-  Serial.println("write_tl2c begin");
+  LOG_DEBUG_LN("write_tl2c begin");
   uint8_t config = 0;
   for (int zone = 0; zone < 3; zone++){ 
     if( tl2c_state.enabled[zone] ){
@@ -460,18 +463,18 @@ void write_tl2c() {
 
   config = config<<4;
   if ( tl2c_state.testMode ){
-    Serial.println("Setting test mode in the config");
+    LOG_DEBUG_LN("Setting test mode in the config");
     config |= 0b0111;
   }
 
-  Serial.print("Setting the configuration 0b");
+  LOG_DEBUG("Setting the configuration 0b");
   print_binary(config, 8);
-  Serial.println();
+  LOG_DEBUG_LN();
 
   tl2c_registers.config = config;
 
   write_config();
-  Serial.println("write_tl2c end");
+  LOG_DEBUG_LN("write_tl2c end");
 }
 
 String asString(bool enabled, bool active) {
@@ -497,7 +500,7 @@ void handle_get_zone_state(AsyncWebServerRequest *request){
 
 
 void handle_zone_form_post(AsyncWebServerRequest *request){
-  Serial.println("handle_zone_form_post: Begin");
+  LOG_DEBUG_LN("handle_zone_form_post: Begin");
 
   int params = request->params();
   int zoneId = -1;
@@ -507,21 +510,21 @@ void handle_zone_form_post(AsyncWebServerRequest *request){
 
   for(int i=0; i<params; i++){
       AsyncWebParameter* p = request->getParam(i);
-      Serial.printf("name: %s, value: %s \n", p->name(), p->value());
+      LOG_DEBUG_F("name: %s, value: %s \n", p->name(), p->value());
       if (  p->name() == "zone-id" ){
         zoneId = p->value().toInt();
         zoneId--;
-        Serial.printf("Setting the zoneID: %s to: %d, ", p->name(), zoneId);
+        LOG_DEBUG_F("Setting the zoneID: %s to: %d, ", p->name(), zoneId);
       }
       if ( p->name() == "zone-enable" ){
         enabled = !(p->value().equals("TRUE"));
         if( enabled )
-          Serial.printf("setting the enable flag %s to: TRUE \n", p->name());
+          LOG_DEBUG_F("setting the enable flag %s to: TRUE \n", p->name());
         else
-          Serial.printf("setting the enable flag %s to: FALSE \n", p->name());
+          LOG_DEBUG_F("setting the enable flag %s to: FALSE \n", p->name());
       }
       if( p->name() == "request-mode"){
-        Serial.printf("Setting the request-mode to %s \n", p->value());
+        LOG_DEBUG_F("Setting the request-mode to %s \n", p->value());
         if (p->value().equals("enable")){
           requestMode = ENABLE;
         } else if (p->value().equals("delay")){
@@ -531,34 +534,34 @@ void handle_zone_form_post(AsyncWebServerRequest *request){
         }
       }
       if(p->name() == "zone-delay"){
-        Serial.printf("Setting the zone delay to %s \n", p->value());
+        LOG_DEBUG_F("Setting the zone delay to %s \n", p->value());
         zoneDelay = p->value().toInt();
       }
   }
-  Serial.printf("The zoneId: %d \n", zoneId);
+  LOG_DEBUG_F("The zoneId: %d \n", zoneId);
   if (zoneId > -1 && requestMode == ENABLE ){
-    Serial.println("Updating the tl2c register for the zone enable");
+    LOG_DEBUG_LN("Updating the tl2c register for the zone enable");
     tl2c_state.enabled[zoneId] = enabled;
     // Write the config
   }
   if( zoneId > -1 && requestMode == DELAY ){
-    Serial.println("Updating the tl2c register for the delay");
+    LOG_DEBUG_LN("Updating the tl2c register for the delay");
     tl2c_state.delay[zoneId] = zoneDelay;
   }
   if( requestMode == TEST ){
-    Serial.println("Updating the tl2c register for the test");
+    LOG_DEBUG_LN("Updating the tl2c register for the test");
     tl2c_state.testMode = !tl2c_state.testMode;
   }
   write_tl2c();
   request->send(SPIFFS,  "/index.html", String(), false, processor);  
   read_tl2c();
-  Serial.println("handle_zone_form_post: End");
+  LOG_DEBUG_LN("handle_zone_form_post: End");
 }
 
 
 void setup_gpio()
 {
-  Serial.println("Starting GPIO setup");
+  LOG_INFO_LN("Starting GPIO setup");
 
   pinMode(TL2C_SLEEP, OUTPUT);
   pinMode(TL2C_RELAY_INT, INPUT_PULLUP);
@@ -581,16 +584,16 @@ void setup_gpio()
 
   button_state = 0;
 
-  Serial.println("Completed GPIO setup");
+  LOG_INFO_LN("Completed GPIO setup");
 
 }
 
 void setup_server()
 {
-  Serial.println("Setting up the server");
+  LOG_DEBUG_LN("Setting up the server");
 
-  Serial.print("Connecting ... ");
-  Serial.println(TL2C_WLAN_SSID);
+  LOG_INFO_LN("Connecting ... ");
+  LOG_INFO_LN(TL2C_WLAN_SSID);
 
   WiFi.mode(WIFI_MODE_APSTA); // or any other mode
   WiFi.setHostname(TL2C_WLAN_HOST);
@@ -601,22 +604,22 @@ void setup_server()
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
-    Serial.print(".");
+    LOG_INFO(".");
   }
 
-  Serial.println(""); // Verbindung aufgebaut
-  Serial.println("WiFi connected.");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-  Serial.println();
-  Serial.println("Start WiFi Server!");
+  LOG_INFO_LN(""); // Verbindung aufgebaut
+  LOG_INFO_LN("WiFi connected.");
+  LOG_INFO_LN("IP address: ");
+  LOG_INFO_LN(WiFi.localIP());
+  LOG_INFO_LN();
+  LOG_INFO_LN("Start WiFi Server!");
   serverWiFi.begin();
 
   serverWiFi.onNotFound(notFound);
 
   // Methode für root / web page
   serverWiFi.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-                { Serial.println("GET /");
+                { LOG_DEBUG_LN("GET /");
                   request->send(SPIFFS, "/index.html", String(), false, processor); 
                   });
 
@@ -639,7 +642,7 @@ void setup_server()
 
   serverWiFi.on("/", HTTP_POST, handle_zone_form_post);
 
-  Serial.println("Server setup complete");
+  LOG_INFO_LN("Server setup complete");
 }
 
 /**
@@ -648,7 +651,7 @@ void setup_server()
  */
 void setup()
 {
-  Serial.println("Starting setup");
+  LOG_INFO_LN("Starting setup");
 
   setup_gpio();
 
@@ -668,15 +671,15 @@ void setup()
 
   if (!SPIFFS.begin(true))
   {
-    Serial.println("ERROR: The SPIFFS could not be mounted");
+    LOG_ERROR("ERROR: The SPIFFS could not be mounted");
     return;
   }
 
   Wire.begin(I2C_PIN_SDA, I2C_PIN_SCL, 100000UL); // Channel 1 I2C
-  Serial.println("Locating the TL2C");
+  LOG_DEBUG_LN("Locating the TL2C");
   tl2c_address = locate_tl2c();
-  Serial.printf("TL2C Address: %02x \n", tl2c_address);
-  Serial.println("Setup complete");
+  LOG_DEBUG_F("TL2C Address: %02x \n", tl2c_address);
+  LOG_INFO_LN("Setup complete");
 
   read_tl2c();
 
@@ -691,7 +694,7 @@ void loop()
   }
 
   if(button_fired > 0){
-    Serial.printf("Button fired: %d \n", button_fired);
+    LOG_DEBUG_F("Button fired: %d \n", button_fired);
     button_fired--;
 
     delay(50);
@@ -706,36 +709,36 @@ void loop()
       button_state = button_state | 1<<ZONE3;
     }
 
-    Serial.print("Button state: ");
+    LOG_DEBUG("Button state: ");
     print_binary(button_state, 4);
-    Serial.println();
+    LOG_DEBUG_LN();
     switch (button_state)
     {
     case 0x01: // Zone 1
-      Serial.println("BTN 1");
+      LOG_DEBUG_LN("BTN 1");
       tl2c_state.enabled[ZONE1] = !tl2c_state.enabled[ZONE1];
       write_tl2c();
       break;
     case 0x02: // Zone 2
-      Serial.println("BTN 2");
+      LOG_DEBUG_LN("BTN 2");
       tl2c_state.enabled[ZONE2] = !tl2c_state.enabled[ZONE2];
       write_tl2c();
       break;
     case 0x04: // Zone 3
-      Serial.println("BTN 3");
+      LOG_DEBUG_LN("BTN 3");
       tl2c_state.enabled[ZONE3] = !tl2c_state.enabled[ZONE3];
       write_tl2c();
       break;
     case 0x03: // Zone 1 and 2
-      Serial.println("BTN 1 + 2");
+      LOG_DEBUG_LN("BTN 1 + 2");
       tl2c_state.testMode = !tl2c_state.testMode;
       write_tl2c();
       break;
     case 0x05: // Zone 1 and 3
-      Serial.println("BTN 1 + 3");
+      LOG_DEBUG_LN("BTN 1 + 3");
       break;
     default:
-      Serial.printf("Undefined button state %0X \n", button_state);
+      LOG_DEBUG_F("Undefined button state %0X \n", button_state);
       break;
     }
     button_state = 0;
