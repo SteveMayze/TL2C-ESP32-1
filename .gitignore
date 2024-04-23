@@ -37,3 +37,4 @@
 .vscode/ipch
 
 secret.h
+*.code-workspace

@@ -123,7 +123,7 @@ String processor(const String &var)
 {
   if (var == "ZONE3-COLOUR")
   {
-    if (tl2c_state.enabled[ZONE3])
+    if (tl2c_state.enabled[ZONE3] || tl2c_state.testMode )
     {
       if(tl2c_state.active[ZONE3]){
         return F("redButton");
@@ -139,7 +139,7 @@ String processor(const String &var)
 
   if (var == "ZONE2-COLOUR")
   {
-    if (tl2c_state.enabled[ZONE2])
+    if (tl2c_state.enabled[ZONE2] || tl2c_state.testMode )
     {
       if(tl2c_state.active[ZONE2]){
         return F("redButton");
@@ -155,7 +155,7 @@ String processor(const String &var)
 
   if (var == "ZONE1-COLOUR")
   {
-    if (tl2c_state.enabled[ZONE1])
+    if (tl2c_state.enabled[ZONE1] || tl2c_state.testMode )
     {
       if(tl2c_state.active[ZONE1]){
         return F("redButton");
@@ -171,7 +171,7 @@ String processor(const String &var)
 
   if (var == "ZONE3-ENABLE")
   {
-    if (tl2c_state.enabled[ZONE3])
+    if (tl2c_state.enabled[ZONE3] || tl2c_state.testMode )
     {
       return F("TRUE");
     }
@@ -183,7 +183,7 @@ String processor(const String &var)
 
   if (var == "ZONE2-ENABLE")
   {
-    if (tl2c_state.enabled[ZONE2])
+    if (tl2c_state.enabled[ZONE2] || tl2c_state.testMode )
     {
       return F("TRUE");
     }
@@ -194,7 +194,7 @@ String processor(const String &var)
   }
   if (var == "ZONE1-ENABLE")
   {
-    if (tl2c_state.enabled[ZONE1])
+    if (tl2c_state.enabled[ZONE1] || tl2c_state.testMode )
     {
       return F("TRUE");
     }
@@ -351,11 +351,10 @@ void read_tl2c()
       int v = tl2c_registers.state;
       for( int bit = 0; bit < 3; bit++){
         if( v & (1 << bit) ) {
-          // Serial.printf("Setting bit %d \n", bit);
           tl2c_state.active[bit] = true;
           Serial.printf("Active: Setting bit: %d - HIGH \n", bit);
         } else {
-          tl2c_state.active[bit] = false;
+          tl2c_state.active[bit] = tl2c_state.testMode? true : false;
           Serial.printf("Active: Setting bit: %d - LOW \n", bit);
         }
       }
@@ -372,7 +371,7 @@ void read_tl2c()
     }
 
     tl2c_registers.config = read_tl2c_config();
-    if(tl2c_registers.config > 0 )
+    if(tl2c_registers.config > -1 )
     {
       Serial.printf("The config was read OK: 0b");
       print_binary(tl2c_registers.config, 8);
@@ -394,6 +393,7 @@ void read_tl2c()
     {
       Serial.println("Reading the config failed");
     }
+
     for (int z = 0; z < 3; z++){
       tl2c_registers.zone_delay[z] = read_tl2c_zone_delay( z );
       if(tl2c_registers.zone_delay[z] > 0 )
@@ -696,7 +696,6 @@ void loop()
 
     delay(50);
 
-
     if( digitalRead(TL2C_ZONE1_BUTTON)){
       button_state = button_state | 1<<ZONE1;
     }
@@ -729,11 +728,14 @@ void loop()
       break;
     case 0x03: // Zone 1 and 2
       Serial.println("BTN 1 + 2");
+      tl2c_state.testMode = !tl2c_state.testMode;
+      write_tl2c();
       break;
     case 0x05: // Zone 1 and 3
       Serial.println("BTN 1 + 3");
       break;
     default:
+      Serial.printf("Undefined button state %0X \n", button_state);
       break;
     }
     button_state = 0;
