@@ -38,3 +38,6 @@
 
 secret.h
 *.code-workspace
+
+.DS_Store
+
