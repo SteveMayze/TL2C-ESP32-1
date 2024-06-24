@@ -518,10 +518,12 @@ void handle_zone_form_post(AsyncWebServerRequest *request){
       }
       if ( p->name() == "zone-enable" ){
         enabled = !(p->value().equals("TRUE"));
-        if( enabled )
+        if( enabled ) {
           LOG_DEBUG_F("setting the enable flag %s to: TRUE \n", p->name());
-        else
+        }
+        else {
           LOG_DEBUG_F("setting the enable flag %s to: FALSE \n", p->name());
+        }
       }
       if( p->name() == "request-mode"){
         LOG_DEBUG_F("Setting the request-mode to %s \n", p->value());
