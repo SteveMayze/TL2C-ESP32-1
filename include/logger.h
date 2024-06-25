@@ -51,14 +51,46 @@
     
 #if defined(LOGGER_LEVEL) && LOGGER_LEVEL > LOGGER_LEVEL_ERROR
     #define LOG_BYTE_STREAM(prefix, byte_stream, stream_size) { \
-        LOG_INFO(prefix);                                      \
+        LOG_INFO(prefix);                                       \
         for(int idx = 0; idx<stream_size; idx++) {              \
-            Serial.printf("%02X ", byte_stream[idx]);               \
+            Serial.printf("%02X ", byte_stream[idx]);           \
         }                                                       \
-        Serial.print("\n");                                        \
+        Serial.print("\n");                                     \
     } 
     #else
         #define LOG_BYTE_STREAM(prefix, byte_stream, stream_size)
+    #endif
+
+    
+#if defined(LOGGER_LEVEL) && LOGGER_LEVEL > LOGGER_LEVEL_ERROR
+    #define LOG_BIT_STREAM(value, bits) {      \
+        int v = value, num_places = bits, mask = 0, n;                                            \
+        for (n = 1; n <= num_places; n++)                           \
+        {                                                           \
+            mask = (mask << 1) | 0x0001;                            \
+        }                                                           \
+        v = v & mask;                                               \
+        while (num_places)                                          \
+        {                                                           \
+            if (v & (0x0001 << num_places - 1))                     \
+            {                                                       \
+               Serial.print("1");                                   \
+            }                                                       \
+            else                                                    \
+            {                                                       \
+               Serial.print("0");                                   \
+            }                                                       \
+            --num_places;                                           \
+            if (((num_places % 4) == 0) && (num_places != 0))       \
+            {                                                       \
+               Serial.print("_");                                   \
+            }                                                       \
+        }                                                           \
+        Serial.print("\n");                                         \
+    }
+
+    #else
+        #define LOG_BIT_STREAM(value, num_places)
     #endif
     
 #endif	/* LOGGER_H */

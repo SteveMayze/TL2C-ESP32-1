@@ -91,36 +91,6 @@ void notFound(AsyncWebServerRequest *request)
 }
 
 
-void print_binary(int v, int num_places)
-{
-  int mask = 0, n;
-
-  for (n = 1; n <= num_places; n++)
-  {
-    mask = (mask << 1) | 0x0001;
-  }
-  v = v & mask; // truncate v to specified number of places
-
-  while (num_places)
-  {
-
-    if (v & (0x0001 << num_places - 1))
-    {
-      LOG_DEBUG("1");
-    }
-    else
-    {
-      LOG_DEBUG("0");
-    }
-
-    --num_places;
-    if (((num_places % 4) == 0) && (num_places != 0))
-    {
-      LOG_DEBUG("_");
-    }
-  }
-}
-
 // Render the place holder variables.
 String processor(const String &var)
 {
@@ -300,8 +270,7 @@ int read_tl2c_register(int reg)
       result = Wire.read();
     }
     LOG_DEBUG("Response: 0b");
-    print_binary(result, 8);
-    LOG_DEBUG_LN();
+    LOG_BIT_STREAM(result, 8);
   }
   else
   {
@@ -349,8 +318,7 @@ void read_tl2c()
     if (tl2c_registers.state > -1)
     {
       LOG_DEBUG_F("The state was read OK: 0b");
-      print_binary(tl2c_registers.state, 8);
-      LOG_DEBUG_LN();
+      LOG_BIT_STREAM(tl2c_registers.state, 8);
       int v = tl2c_registers.state;
       for( int bit = 0; bit < 3; bit++){
         if( v & (1 << bit) ) {
@@ -377,8 +345,7 @@ void read_tl2c()
     if(tl2c_registers.config > -1 )
     {
       LOG_DEBUG_F("The config was read OK: 0b");
-      print_binary(tl2c_registers.config, 8);
-      LOG_DEBUG_LN();
+      LOG_BIT_STREAM(tl2c_registers.config, 8);
       int v = tl2c_registers.config;
       for( int bit = 0; bit < 3; bit++){
         if( v & (1 << bit) ) {
@@ -468,8 +435,7 @@ void write_tl2c() {
   }
 
   LOG_DEBUG("Setting the configuration 0b");
-  print_binary(config, 8);
-  LOG_DEBUG_LN();
+  LOG_BIT_STREAM(config, 8);
 
   tl2c_registers.config = config;
 
@@ -712,8 +678,7 @@ void loop()
     }
 
     LOG_DEBUG("Button state: ");
-    print_binary(button_state, 4);
-    LOG_DEBUG_LN();
+    LOG_BIT_STREAM(button_state, 4);
     switch (button_state)
     {
     case 0x01: // Zone 1
@@ -735,9 +700,11 @@ void loop()
       LOG_DEBUG_LN("BTN 1 + 2");
       tl2c_state.testMode = !tl2c_state.testMode;
       write_tl2c();
+      delay(300);
       break;
     case 0x05: // Zone 1 and 3
       LOG_DEBUG_LN("BTN 1 + 3");
+      delay(300);
       break;
     default:
       LOG_DEBUG_F("Undefined button state %0X \n", button_state);
@@ -746,6 +713,4 @@ void loop()
     button_state = 0;
     read_tl2c();
   }
-
-  // delay(1);
 }

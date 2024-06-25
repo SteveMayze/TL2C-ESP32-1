@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "typeinfo": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "regex": "cpp",
+        "esp_compiler.h": "c"
     }
 }
