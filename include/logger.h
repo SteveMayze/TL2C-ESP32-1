@@ -16,7 +16,7 @@
 #define LOGGER_LEVEL_ALL 7
 
 #define LOGGER_LEVEL LOGGER_LEVEL_INFO
-    
+
 #if defined(LOGGER_LEVEL) && LOGGER_LEVEL > LOGGER_LEVEL_OFF
     #define LOG_ERROR(args...) { Serial.print("ERROR: "); Serial.print(args); }
     #define LOG_ERROR_F(args...) { Serial.print("ERROR: "); Serial.printf(args); }
@@ -49,7 +49,7 @@
 #endif
 
     
-#if defined(LOGGER_LEVEL) && LOGGER_LEVEL > LOGGER_LEVEL_ERROR
+#if defined(LOGGER_LEVEL) && LOGGER_LEVEL > LOGGER_LEVEL_INFO
     #define LOG_BYTE_STREAM(prefix, byte_stream, stream_size) { \
         LOG_INFO(prefix);                                       \
         for(int idx = 0; idx<stream_size; idx++) {              \
@@ -62,7 +62,7 @@
     #endif
 
     
-#if defined(LOGGER_LEVEL) && LOGGER_LEVEL > LOGGER_LEVEL_ERROR
+#if defined(LOGGER_LEVEL) && LOGGER_LEVEL > LOGGER_LEVEL_INFO
     #define LOG_BIT_STREAM(value, bits) {      \
         int v = value, num_places = bits, mask = 0, n;                                            \
         for (n = 1; n <= num_places; n++)                           \
