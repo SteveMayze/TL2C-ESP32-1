@@ -39,6 +39,8 @@
 #define I2C_RESPONSE_BAD_DATA 3
 #define I2C_RESPONSE_ERROR 4
 
+#define INDEX_HTML "/index.min.html"
+
 enum
 {
   ZONE1 = 0,
@@ -521,7 +523,7 @@ void handle_zone_form_post(AsyncWebServerRequest *request){
     tl2c_state.testMode = !tl2c_state.testMode;
   }
   write_tl2c();
-  request->send(SPIFFS,  "/index.html", String(), false, processor);  
+  request->send(SPIFFS, INDEX_HTML, String(), false, processor);  
   read_tl2c();
   LOG_DEBUG_LN("handle_zone_form_post: End");
 }
@@ -575,9 +577,10 @@ void setup_server()
     LOG_INFO(".");
   }
 
-  LOG_INFO_LN(""); // Verbindung aufgebaut
-  LOG_INFO_LN("WiFi connected.");
-  LOG_INFO_LN("IP address: ");
+  LOG_INFO_LN("");
+  LOG_INFO_LN("WiFi connected..!");
+  LOG_INFO_F("This hostname: %s\n", WiFi.getHostname());
+  LOG_INFO("Got IP: ");
   LOG_INFO_LN(WiFi.localIP());
   LOG_INFO_LN();
   LOG_INFO_LN("Start WiFi Server!");
@@ -588,21 +591,23 @@ void setup_server()
   // Methode für root / web page
   serverWiFi.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
                 { LOG_DEBUG_LN("GET /");
-                  request->send(SPIFFS, "/index.html", String(), false, processor); 
+                  request->send(SPIFFS, INDEX_HTML, String(), false, processor); 
                   });
 
   // Methode für Laden der style.css-Datei
   serverWiFi.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request)
-                { request->send(SPIFFS, "/style.css", "text/css"); });
+                { request->send(SPIFFS, "/style.min.css", "text/css"); });
   // Methode für Laden der jquery-3.7.1.min.js-Datei
   serverWiFi.on("/jquery-3.7.1.min.js", HTTP_GET, [](AsyncWebServerRequest *request)
                 { request->send(SPIFFS, "/jquery-3.7.1.min.js", "text/javascript"); });
   // Callback für Laden der java.js-Datei
   serverWiFi.on("/java.js", HTTP_GET, [](AsyncWebServerRequest *request)
-                { request->send(SPIFFS, "/java.js", "text/javascript"); });
+                { request->send(SPIFFS, "/java.min.js", "text/javascript"); });
   // Callback für Laden der java.js-Datei
-  serverWiFi.on("/WhiteOnBlak_logo.png", HTTP_GET, [](AsyncWebServerRequest *request)
-                { request->send(SPIFFS, "/WhiteOnBlak_logo.png", "image/png"); });
+  // serverWiFi.on("/WhiteOnBlak_logo.png", HTTP_GET, [](AsyncWebServerRequest *request)
+  //               { request->send(SPIFFS, "/WhiteOnBlak_logo.png", "image/png"); });
+
+  serverWiFi.serveStatic("/img/", SPIFFS, "/img/");
 
   // serverWiFi.on("/api/v1/config", HTTP_POST, handle_config_rest_post);
 
